@@ -1,5 +1,6 @@
 """Streamlit app for BANKING77 intent prediction."""
 
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -8,6 +9,10 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 MODEL_DIR = Path(__file__).parent / "artifacts" / "banking77-distilbert"
+DEFAULT_MODEL_ID = "mrm8488/distilroberta-finetuned-banking77"
+MODEL_SOURCE = os.getenv("BANKING77_MODEL_ID") or (
+    str(MODEL_DIR) if MODEL_DIR.is_dir() else DEFAULT_MODEL_ID
+)
 EXAMPLE = "I tried to withdraw ₹10,000, but the ATM didn't give me the cash."
 
 st.set_page_config(page_title="Banking Intent Classifier", page_icon="B", layout="wide")
@@ -36,23 +41,20 @@ st.divider()
 
 
 @st.cache_resource
-def load_model(model_path):
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForSequenceClassification.from_pretrained(model_path)
+def load_model(model_source):
+    tokenizer = AutoTokenizer.from_pretrained(model_source)
+    model = AutoModelForSequenceClassification.from_pretrained(model_source)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
     return tokenizer, model, device
 
 
-if not MODEL_DIR.exists():
-    st.warning("No trained model export found. Run `python train.py` to train and export it.")
-    st.stop()
-
 try:
-    tokenizer, model, device = load_model(str(MODEL_DIR))
+    with st.spinner(f"Loading intent model from `{MODEL_SOURCE}`..."):
+        tokenizer, model, device = load_model(MODEL_SOURCE)
 except (OSError, ValueError) as error:
-    st.error(f"Could not load the exported model: {error}")
+    st.error(f"Could not load the intent model from `{MODEL_SOURCE}`: {error}")
     st.stop()
 
 left, right = st.columns([1.2, 0.8], gap="large")

@@ -4,9 +4,9 @@ Fine-tune DistilBERT to classify banking customer messages into the 77 BANKING77
 
 ## Project flow
 
-`BANKING77 -> DistilBERT tokenizer -> fine-tuning -> exported model -> Streamlit prediction`
+`BANKING77 -> fine-tuned transformer -> Streamlit prediction`
 
-The training script downloads the official `PolyAI/banking77` dataset through Hugging Face Datasets. It uses the dataset's 10,003 training examples and evaluates against the 3,080 test examples. The exported model includes the tokenizer and intent label mapping.
+The training script downloads the official `PolyAI/banking77` dataset through Hugging Face Datasets. It uses the dataset's 10,003 training examples and evaluates against the 3,080 test examples. The exported model includes the tokenizer and intent label mapping. For deployments where the local export is not present, the app loads a public BANKING77 fine-tuned model from Hugging Face Hub.
 
 ## Setup
 
@@ -34,13 +34,17 @@ Use `python train.py --help` to adjust the model, learning rate, batch size, and
 
 ## Launch the app
 
-After training:
+Run the app locally:
 
 ```bash
 streamlit run app.py
 ```
 
-Enter a customer message to see the most likely intent, its confidence, and the next two likely intents. The app reads the local exported model; no hosted inference service is required.
+The app uses `artifacts/banking77-distilbert/` when a local trained export exists. Otherwise, it downloads `mrm8488/distilroberta-finetuned-banking77` from Hugging Face Hub, so Streamlit Community Cloud does not need a model artifact committed to the repository. The first launch needs internet access and may take a little longer while model files are downloaded.
+
+To use your own model uploaded to Hugging Face Hub, set the `BANKING77_MODEL_ID` environment variable (or add it under **App settings → Secrets** in Streamlit Community Cloud) to its repository ID, for example `your-account/your-banking77-model`. The repository must contain a Transformers sequence-classification model and tokenizer.
+
+Enter a customer message to see the most likely intent, its confidence, and the next two likely intents. No hosted inference API is used; the model runs in the app process.
 
 ## Example
 
